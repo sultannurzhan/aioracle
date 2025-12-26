@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import random
-import time
-
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from .backend import PredictionEngine
@@ -18,18 +15,21 @@ class AnalysisWorker(QThread):
         self._engine = engine
 
     def run(self):
-        steps = [
-            (10, "Connecting to arXiv API..."),
-            (30, "Scraping GitHub repos for 'Transformer' activity..."),
-            (50, "Analyzing global compute funding trends..."),
-            (70, "Running Monte Carlo simulations..."),
-            (90, "Finalizing probability weights..."),
-            (100, "Done."),
-        ]
+        try:
+            self.progress_update.emit(5, "Connecting to prediction markets...")
 
-        for progress, msg in steps:
-            time.sleep(random.uniform(0.3, 0.8))
-            self.progress_update.emit(progress, msg)
+            # Fetch FRESH data from web on every button press
+            self.progress_update.emit(15, "Scraping Metaculus API...")
+            self.progress_update.emit(35, "Scraping Polymarket...")
+            self.progress_update.emit(55, "Scraping Manifold Markets...")
+            
+            # This fetches ALL data fresh from web
+            prediction: Prediction = self._engine.generate_prediction()
 
-        prediction: Prediction = self._engine.generate_prediction()
-        self.result_ready.emit(prediction)
+            self.progress_update.emit(85, "Aggregating forecasts (weighted analysis)...")
+            self.progress_update.emit(100, "Done - fresh data analyzed!")
+            
+            self.result_ready.emit(prediction)
+
+        except Exception as e:
+            self.progress_update.emit(0, f"Error: {e}")
